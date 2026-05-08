@@ -90,20 +90,27 @@ def get_history():
 
         results = []
         for file_dt, key in entries:
-            body = s3_client.get_object(Bucket=AWS_BUCKET_NAME, Key=key)["Body"].read()
-            data = json.loads(body)
-            results.append({
-                "time": file_dt.strftime("%m/%d %H:%M"),
-                "temp": data["temperature_fahrenheit"],
-                "feels_like": data["feels_like_fahrenheit"],
-                "high": data["high_fahrenheit"],
-                "low": data["low_fahrenheit"],
-                "humidity": data["hourly_forecast"][0]["humidity"],
-                "wind_mph": round(data["wind_speed_kmh"] * 0.621371),
-                "sunrise": data["sunrise"].split("T")[1][:5],
-                "sunset": data["sunset"].split("T")[1][:5],
-                "condition": data["condition"],
-            })
+            try:
+                body = s3_client.get_object(Bucket=AWS_BUCKET_NAME, Key=key)["Body"].read()
+                data = json.loads(body)
+                wind_kmh = data.get("wind_speed_kmh")
+                hourly = data.get("hourly_forecast") or []
+                sunrise_raw = data.get("sunrise")
+                sunset_raw = data.get("sunset")
+                results.append({
+                    "time": file_dt.strftime("%m/%d %H:%M"),
+                    "temp": data.get("temperature_fahrenheit"),
+                    "feels_like": data.get("feels_like_fahrenheit"),
+                    "high": data.get("high_fahrenheit"),
+                    "low": data.get("low_fahrenheit"),
+                    "humidity": hourly[0].get("humidity") if hourly else None,
+                    "wind_mph": round(wind_kmh * 0.621371) if wind_kmh is not None else None,
+                    "sunrise": sunrise_raw.split("T")[1][:5] if sunrise_raw else None,
+                    "sunset": sunset_raw.split("T")[1][:5] if sunset_raw else None,
+                    "condition": data.get("condition"),
+                })
+            except Exception:
+                continue
 
         return {"status": "success", "data": results}
 
