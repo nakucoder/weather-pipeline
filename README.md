@@ -1,6 +1,6 @@
 # Miami Weather Pipeline
 
-An automated data pipeline that fetches real-time weather data for Miami, FL and stores it in AWS S3 — built with FastAPI, Docker, and Python.
+An automated data pipeline that fetches real-time weather data for Miami, FL and stores it in AWS S3 — built with FastAPI, AWS Lambda, and Python.
 
 ## What it does
 
@@ -20,10 +20,22 @@ An automated data pipeline that fetches real-time weather data for Miami, FL and
 ## Tech Stack
 
 - **FastAPI** — REST API framework
-- **Docker** — containerized for consistent deployment anywhere
+- **AWS Lambda** — serverless compute (replaces APScheduler + EC2)
+- **Amazon EventBridge** — cron trigger, fires every 60 minutes
+- **API Gateway** — REST endpoint: `GET /weather`
+- **CloudWatch** — logs and error alarms
+- **SNS** — email alerts on Lambda errors
 - **AWS S3** — cloud storage for all pipeline data
-- **APScheduler** — automated scheduling (runs every 60 minutes)
 - **Open-Meteo API** — free, no API key required
+
+## Lambda Migration
+
+The pipeline was migrated from EC2 + Docker + APScheduler to a fully serverless architecture on AWS Lambda.
+
+- **Scheduling:** Amazon EventBridge triggers the Lambda function every hour, replacing APScheduler running on a long-lived EC2 instance
+- **API access:** API Gateway exposes the `/weather` endpoint at `https://nj6nmdc5ge.execute-api.us-east-2.amazonaws.com/prod/weather`
+- **Security:** The Lambda execution role uses IAM least-privilege permissions — no hardcoded credentials anywhere in the codebase
+- **Observability:** CloudWatch captures all Lambda logs and monitors for errors; SNS sends email alerts on any Lambda failure
 
 ## API Endpoints
 
@@ -34,6 +46,8 @@ An automated data pipeline that fetches real-time weather data for Miami, FL and
 | `GET /weather` | Get current Miami weather (no S3 save) |
 | `GET /run` | Trigger pipeline manually + save to S3 |
 | `GET /history` | Get last 7 days of weather data from S3 |
+
+**Live endpoint:** `https://nj6nmdc5ge.execute-api.us-east-2.amazonaws.com/prod/weather`
 
 ## How to run it
 
