@@ -36,7 +36,7 @@ def fetch_miami_weather():
         "timezone": "America/New_York",
         "forecast_days": 3
     }
-    response = requests.get(WEATHER_API_URL, params=params)
+    response = requests.get(WEATHER_API_URL, params=params, timeout=15)
     response.raise_for_status()
     data = response.json()
 
